@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html><head>
+<meta http-equiv="content-type" content="text/html; charset=UTF-8">
+<meta charset="utf-8">
+<title>Mindmap template</title>
+<meta name="description" content="">
+<meta name="viewport" content="width=device-width">
+<style>
+    * {
+        margin:0;
+        padding:0;
+    }
+    
+    svg {
+        background-color:#ccc;
+        display:block;
+        margin:0;
+    }
+    
+    .link {
+        fill: none;
+        stroke: #fff;
+        stroke-width: 3;
+		stroke-dasharray: 10;
+  animation: dash 300s linear infinite;
+    }
+    
+    g text {
+        pointer-events: none;
+        font: 0.9em sans-serif;
+    }
+        
+    circle {
+        cursor:move;
+		fill: #eeaa3a;
+		stroke: black;
+	
+		stroke-dasharray: 10;
+  animation: dash 50s linear infinite;
+}
+
+@keyframes dash {
+  to {
+    stroke-dashoffset: 5000;
+  }
+}
+	
+</style>
+<script src="js/d3.js"></script>
+</head>
+
+<body>
+<script>
+    //Get window dimensions for positioning of mindmap
+    var w=window,d=document,e=d.documentElement,g=d.getElementsByTagName('body')[0];
+    var x=w.innerWidth||e.clientWidth||g.clientWidth,y=w.innerHeight||e.clientHeight||g.clientHeight;
+    var width = 1 * x, height = 1 * y;
+
+    //Create SVG element, set dimensions
+    var svg = d3.select("body").append("svg")
+        .attr("width", width)
+        .attr("height", height);
+
+    //Create instance of d3 type
+    var force = d3.layout.force()
+        .gravity(0.03) //How strongly it all gets pulled together - zero will float away
+        .distance(100)
+        .charge(-300)
+        .friction(0.9)
+        .size([width, height]);
+
+    //Grab the data from our external json file
+    d3.json("js/data.json", function(error,json) {
+    
+        //Add the data to our d3 instance now we have it
+        force
+            .nodes(json.nodes)
+            .links(json.links)
+            .start();
+
+        //Create our data nodes
+        var node = svg.selectAll(".node")
+            .data(json.nodes) //Set the data from our grabbed nodes
+            .enter().append("g") //Add the g elements to our svg
+            .attr("class", "node")//Add class of 'node' to our g elements
+            .call(force.drag); //Make these draggable
+            
+        //Create our lines between data nodes
+        var link = svg.selectAll(".link")
+            .data(json.links) //Set the data from our grabbed links
+            .enter().append("line") //Add the line elements to our svg
+            .attr("class", "link") //Add class of 'link' to our line elements
+    
+        //Associate circles with the nodes
+          node.append("circle")
+            .attr("r", function(d) { return d.group; }); //Size of circle is dependent on 'group' attribute in data
+
+        //Associate text labels with the nodes - use the 'name' value from our json
+        node.append("text")
+          .attr("dx", "1.5em") //Offset
+          .attr("dy", "1.5em")
+          .text(function(d) { return d.name }); //Text value comes from 'name' in data
+
+        
+        //Animate coords
+        force.on("tick", function() {
+            link.attr("x1", function(d) { return d.source.x; })
+                .attr("y1", function(d) { return d.source.y; })
+                .attr("x2", function(d) { return d.target.x; })
+                .attr("y2", function(d) { return d.target.y; });
+
+            node.attr("transform", function(d) { return "translate(" + d.x + "," + d.y + ")";});
+        });
+    });
+</script>
+</body>
+</html>
